@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Đấu Trường Trắc Nghiệm AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 antialiased selection:bg-cyan-500">
+
+  <!-- Màn hình nhập tên (Lobby) -->
+  <div id="join-screen" class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-2xl text-center">
+    <div class="inline-flex p-3 bg-cyan-950 text-cyan-400 rounded-xl mb-3 font-mono font-bold text-sm tracking-wider border border-cyan-800/50">AI ARENA</div>
+    <h1 class="text-2xl font-bold mb-1 text-white">Đấu Trường AI</h1>
+    <p class="text-xs text-slate-400 mb-6">Trả lời đúng và nhanh nhất qua 8 câu hỏi</p>
+    
+    <input id="player-name" type="text" maxlength="25" placeholder="Nhập tên hoặc SBD của bạn..." 
+           class="w-full px-4 py-3 rounded-xl bg-slate-800 text-white border border-slate-700 focus:outline-none focus:border-cyan-400 mb-4 text-center font-medium placeholder-slate-500">
+    <button onclick="joinGame()" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 font-bold rounded-xl shadow-lg shadow-cyan-950/50 transition duration-150">
+      Tham Gia Ngay
+    </button>
+  </div>
+
+  <!-- Màn hình chơi chính -->
+  <div id="game-screen" class="w-full max-w-md hidden flex flex-col justify-between flex-grow py-2">
+    <!-- Header thông tin thí sinh -->
+    <div>
+      <div class="flex justify-between items-center mb-3 bg-slate-900/90 border border-slate-800 px-4 py-3 rounded-xl shadow-sm">
+        <div class="flex items-center gap-2">
+          <span id="display-name" class="font-bold text-sm text-cyan-300"></span>
+          <span id="player-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Thi đấu</span>
+        </div>
+        <div id="timer" class="text-xl font-mono font-black text-amber-400 tracking-wider">30s</div>
+      </div>
+
+      <!-- Banner trạng thái -->
+      <div id="status-banner" class="hidden mb-3 p-3 rounded-xl text-center font-bold text-xs border"></div>
+
+      <!-- Khung hiển thị câu hỏi -->
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl mb-4 shadow-sm relative overflow-hidden">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-cyan-400 mb-1" id="q-counter">Chuẩn bị bắt đầu</div>
+        <div id="q-text" class="text-base font-medium text-slate-100 leading-snug">Vui lòng đợi MC phát câu hỏi trên màn hình lớn...</div>
+      </div>
+    </div>
+
+    <!-- 4 Nút lựa chọn A, B, C, D -->
+    <div id="options-grid" class="grid grid-cols-1 gap-2.5 my-auto">
+      <button onclick="submitAnswer(0)" class="opt-btn p-4 bg-slate-900 border border-slate-800 rounded-xl text-left font-medium transition active:scale-[0.98] disabled:opacity-70" disabled>A. ...</button>
+      <button onclick="submitAnswer(1)" class="opt-btn p-4 bg-slate-900 border border-slate-800 rounded-xl text-left font-medium transition active:scale-[0.98] disabled:opacity-70" disabled>B. ...</button>
+      <button onclick="submitAnswer(2)" class="opt-btn p-4 bg-slate-900 border border-slate-800 rounded-xl text-left font-medium transition active:scale-[0.98] disabled:opacity-70" disabled>C. ...</button>
+      <button onclick="submitAnswer(3)" class="opt-btn p-4 bg-slate-900 border border-slate-800 rounded-xl text-left font-medium transition active:scale-[0.98] disabled:opacity-70" disabled>D. ...</button>
+    </div>
+
+    <div class="text-center text-[11px] text-slate-500 py-2">
+      Hệ thống tự động ghi nhận thời gian bấm nút theo mili-giây
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let isAlive = true;
+    let timerInterval = null;
+
+    function joinGame() {
+      const name = document.getElementById('player-name').value.trim();
+      if (!name) return alert('Vui lòng nhập họ và tên!');
+      socket.emit('player:join', { name });
+    }
+
+    socket.on('player:joined', (data) => {
+      document.getElementById('join-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      document.getElementById('display-name').innerText = data.name;
+    });
+
+    socket.on('game:question_started', (q) => {
+      document.getElementById('status-banner').classList.add('hidden');
+      document.getElementById('q-counter').innerText = `Câu ${q.index}/${q.totalQuestions} • Lấy Top ${q.quota}`;
+      document.getElementById('q-text').innerText = q.text;
+
+      const buttons = document.querySelectorAll('.opt-btn');
+      buttons.forEach((btn, idx) => {
+        btn.innerText = `${String.fromCharCode(65 + idx)}. ${q.options[idx]}`;
+        btn.className = 'opt-btn p-4 bg-slate-900 border border-slate-800 rounded-xl text-left font-medium transition active:scale-[0.98] disabled:opacity-70';
+        btn.disabled = !isAlive;
+      });
+
+      let remaining = 30;
+      clearInterval(timerInterval);
+      document.getElementById('timer').innerText = `${remaining}s`;
+      timerInterval = setInterval(() => {
+        remaining--;
+        document.getElementById('timer').innerText = `${remaining}s`;
+        if (remaining <= 0) clearInterval(timerInterval);
+      }, 1000);
+    });
+
+    function submitAnswer(idx) {
+      if (!isAlive) return;
+      socket.emit('player:submit_answer', { answerIndex: idx });
+      const buttons = document.querySelectorAll('.opt-btn');
+      buttons.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === idx) {
+          btn.className = 'opt-btn p-4 bg-cyan-950/80 border-2 border-cyan-400 rounded-xl text-left font-medium text-cyan-200';
+        }
+      });
+    }
+
+    socket.on('player:answer_recorded', (data) => {
+      const banner = document.getElementById('status-banner');
+      banner.className = 'mb-3 p-3 rounded-xl text-center font-bold text-xs bg-cyan-950/60 text-cyan-300 border border-cyan-700/60 block';
+      banner.innerText = `Đã ghi nhận đáp án! Thời gian phản hồi: ${(data.timeMs / 1000).toFixed(3)}s`;
+    });
+
+    socket.on('player:status_changed', (data) => {
+      isAlive = data.isAlive;
+      const badge = document.getElementById('player-badge');
+      const banner = document.getElementById('status-banner');
+      banner.classList.remove('hidden');
+
+      if (!isAlive) {
+        badge.innerText = 'Theo dõi';
+        badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 border border-slate-600';
+        banner.className = 'mb-3 p-3 rounded-xl text-center font-bold text-xs bg-rose-950/70 text-rose-300 border border-rose-800 block';
+        banner.innerText = data.message;
+      } else {
+        banner.className = 'mb-3 p-3 rounded-xl text-center font-bold text-xs bg-emerald-950/70 text-emerald-300 border border-emerald-800 block';
+        banner.innerText = `${data.message} (${(data.timeMs / 1000).toFixed(3)}s)`;
+      }
+    });
+
+    socket.on('game:round_closed', (data) => {
+      clearInterval(timerInterval);
+      document.getElementById('timer').innerText = 'Hết giờ';
+
+      const buttons = document.querySelectorAll('.opt-btn');
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === data.correctIndex) {
+          btn.className = 'opt-btn p-4 bg-emerald-950/80 border-2 border-emerald-400 rounded-xl text-left font-semibold text-emerald-200';
+        }
+      });
+
+      if (data.winner) {
+        alert(`🏆 ĐÃ TÌM RA QUÁN QUÂN: ${data.winner.name}`);
+      }
+    });
+  </script>
+</body>
+</html>

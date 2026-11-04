@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "quota": 50,
+    "text": "Thuật ngữ 'Trí tuệ nhân tạo' (AI) lần đầu tiên được đưa ra tại hội thảo nào?",
+    "options": ["Dartmouth (1956)", "Turing Conference (1950)", "Stanford AI Lab (1962)", "MIT Workshop (1958)"],
+    "correct": 0
+  },
+  {
+    "id": 2,
+    "quota": 40,
+    "text": "Kiến trúc mạng nơ-ron nền tảng cho hầu hết các mô hình ngôn ngữ lớn (LLM) hiện nay là gì?",
+    "options": ["RNN", "LSTM", "Transformer", "CNN"],
+    "correct": 2
+  },
+  {
+    "id": 3,
+    "quota": 30,
+    "text": "Hiện tượng mô hình AI tự tin đưa ra thông tin hoàn toàn sai lệch hoặc bịa đặt được gọi là gì?",
+    "options": ["Overfitting", "Hallucination (Ảo giác)", "Catastrophic Forgetting", "Vanishing Gradient"],
+    "correct": 1
+  },
+  {
+    "id": 4,
+    "quota": 20,
+    "text": "Kỹ thuật 'RAG' trong các ứng dụng AI tạo sinh là viết tắt của cụm từ nào?",
+    "options": ["Rapid AI Generation", "Retrieval-Augmented Generation", "Recurrent Automated Grading", "Reinforced Agent Graph"],
+    "correct": 1
+  },
+  {
+    "id": 5,
+    "quota": 10,
+    "text": "Phương pháp huấn luyện dùng phản hồi từ con người để tinh chỉnh mô hình ngôn ngữ có tên viết tắt là gì?",
+    "options": ["GAN", "RLHF", "BERT", "SGD"],
+    "correct": 1
+  },
+  {
+    "id": 6,
+    "quota": 6,
+    "text": "Mô hình AlphaFold của Google DeepMind đã giải quyết thành công bài toán sinh học phân tử kinh điển nào?",
+    "options": ["Mô phỏng chuỗi ADN", "Dự đoán cấu trúc cuộn gập Protein", "Phân tích biến dị RNA", "Tổng hợp tế bào nhân tạo"],
+    "correct": 1
+  },
+  {
+    "id": 7,
+    "quota": 3,
+    "text": "Bài kiểm tra kinh điển đánh giá máy tính có biểu hiện trí tuệ tương đương con người hay không mang tên ai?",
+    "options": ["Alan Turing", "John von Neumann", "Claude Shannon", "Marvin Minsky"],
+    "correct": 0
+  },
+  {
+    "id": 8,
+    "quota": 1,
+    "text": "Cơ chế nào trong kiến trúc Transformer cho phép mô hình cân nhắc mối quan hệ giữa các từ bất kể khoảng cách trong câu?",
+    "options": ["Backpropagation", "Self-Attention", "Dropout", "Convolutional Stride"],
+    "correct": 1
+  }
+]

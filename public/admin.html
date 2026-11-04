@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - AI Quiz Control</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+  <div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center pb-5 border-b border-slate-800 mb-6 gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-cyan-400 tracking-tight">BẢNG ĐIỀU KHIỂN MC & QUẢN TRỊ</h1>
+        <p class="text-xs text-slate-400 mt-0.5">Kiểm soát tiến trình 8 câu hỏi và lọc loại theo thời gian thực</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-sm font-medium">
+          Thí sinh online: <span id="online-count" class="font-bold text-emerald-400">0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Cột danh sách 8 câu hỏi -->
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Danh Sách Câu Hỏi</h2>
+        <div class="space-y-2">
+          <button onclick="startQuestion(0, 50)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 1: Lịch sử AI</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 50</span>
+          </button>
+          <button onclick="startQuestion(1, 40)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 2: Transformer LLM</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 40</span>
+          </button>
+          <button onclick="startQuestion(2, 30)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 3: Hallucination</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 30</span>
+          </button>
+          <button onclick="startQuestion(3, 20)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 4: Kỹ thuật RAG</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 20</span>
+          </button>
+          <button onclick="startQuestion(4, 10)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 5: Phương pháp RLHF</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 10</span>
+          </button>
+          <button onclick="startQuestion(5, 6)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 6: AlphaFold</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 6</span>
+          </button>
+          <button onclick="startQuestion(6, 3)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex justify-between items-center transition">
+            <span class="font-medium text-sm">Câu 7: Turing Test</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-cyan-950 text-cyan-300 rounded border border-cyan-800">Top 3</span>
+          </button>
+          <button onclick="startQuestion(7, 1)" class="q-btn w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-amber-500/50 flex justify-between items-center transition">
+            <span class="font-bold text-amber-300 text-sm">Câu 8: Chung Kết</span>
+            <span class="text-xs font-mono px-2 py-0.5 bg-amber-950 text-amber-300 rounded border border-amber-800">Top 1</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cột điều khiển trung tâm -->
+      <div class="lg:col-span-2 space-y-5">
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Trạng Thái Vòng Thi</h2>
+          <div id="status-card" class="p-4 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 font-medium mb-4">
+            Hệ thống đang ở chế độ sảnh chờ (Lobby). Hãy bấm chọn một câu hỏi để bắt đầu.
+          </div>
+          
+          <button onclick="triggerEliminate()" class="w-full py-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 font-bold text-base rounded-xl shadow-lg shadow-rose-950/40 transition">
+            Chốt Câu Hỏi & Lọc Loại Ngay Lập Tức
+          </button>
+        </div>
+
+        <!-- Bảng danh sách thí sinh nhanh nhất -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">Thí Sinh Đúng & Nhanh Nhất (Top Vừa Qua)</h2>
+            <span id="survivor-badge" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-400">0 còn lại</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="text-xs uppercase text-slate-500 border-b border-slate-800">
+                <tr>
+                  <th class="py-2">Thứ hạng</th>
+                  <th class="py-2">Họ tên</th>
+                  <th class="py-2 text-right">Thời gian câu (s)</th>
+                  <th class="py-2 text-right">Tổng thời gian (s)</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-body" class="divide-y divide-slate-800 text-slate-300 font-mono">
+                <tr>
+                  <td colspan="4" class="py-4 text-center text-slate-500 font-sans">Chưa có dữ liệu vòng thi.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    socket.on('stats:players_count', (data) => {
+      document.getElementById('online-count').innerText = data.count;
+    });
+
+    function startQuestion(index, quota) {
+      socket.emit('admin:start_question', { questionIndex: index });
+      document.getElementById('status-card').innerHTML = `
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse mr-2"></span>
+        Đang mở: <b class="text-cyan-400 font-semibold">Câu ${index + 1}</b> • Chỉ tiêu đi tiếp: <b class="text-amber-400">${quota} người</b>. Đồng hồ 30 giây đang đếm ngược.
+      `;
+    }
+
+    function triggerEliminate() {
+      socket.emit('admin:trigger_elimination');
+    }
+
+    socket.on('game:round_closed', (data) => {
+      document.getElementById('status-card').innerHTML = `
+        Đã chốt câu hỏi! Số thí sinh sống sót: <b class="text-emerald-400">${data.survivorsCount}</b> / Quota: <b class="text-cyan-400">${data.quota}</b>.
+      `;
+      document.getElementById('survivor-badge').innerText = `${data.survivorsCount} người sống sót`;
+
+      const tbody = document.getElementById('leaderboard-body');
+      if (data.topSurvivors.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-rose-400 font-sans">Không có thí sinh nào trả lời đúng ở câu này!</td></tr>';
+      } else {
+        tbody.innerHTML = data.topSurvivors.map((p, idx) => `
+          <tr>
+            <td class="py-2 text-cyan-400 font-bold">#${idx + 1}</td>
+            <td class="py-2 font-sans font-medium text-slate-200">${p.name}</td>
+            <td class="py-2 text-right text-amber-400">${(p.timeMs / 1000).toFixed(3)}s</td>
+            <td class="py-2 text-right text-slate-400">${(p.totalTimeMs / 1000).toFixed(3)}s</td>
+          </tr>
+        `).join('');
+      }
+
+      if (data.winner) {
+        alert(`🏆 ĐÃ TÌM RA QUÁN QUÂN CHUNG CUỘC: ${data.winner.name}`);
+      }
+    });
+  </script>
+</body>
+</html>
